@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { body, validationResult } = require('express-validator');
+// const { body, validationResult } = require('express-validator');
 
 const {
 	create,
