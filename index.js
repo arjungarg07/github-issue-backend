@@ -2,12 +2,15 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const { commonQuery } = require('./db');
 const router = require('./routes/index');
 
 const app = express();
+const { postgresDbConfig } = require('./config/default');
+const supabase = createClient(postgresDbConfig.url, postgresDbConfig.publicAnonKey);
 const PORT = process.env.PORT || 8000;
 
 app.use(bodyParser.json());

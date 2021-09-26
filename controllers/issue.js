@@ -1,4 +1,8 @@
 const { commonQuery } = require('../db');
+const { createClient } = require('@supabase/supabase-js');
+const { postgresDbConfig } = require('../config/default');
+const supabase = createClient(postgresDbConfig.url, postgresDbConfig.publicAnonKey);
+
 
 async function create(req, res) {
 	try {
@@ -10,12 +14,15 @@ async function create(req, res) {
 			});
 		}
 		const INSERT_QUERY = `INSERT INTO database1.Issues SET ?;`;
-		await commonQuery(INSERT_QUERY, {
-			title,
-			description,
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		});
+		const { data, error } = await supabase.from('Issues')
+								.insert([{ title, description, createdAt: new Date(), updatedAt: new Date()}]);
+		// console.log(data,error);
+		// await commonQuery(INSERT_QUERY, {
+		// 	title,
+		// 	description,
+		// 	createdAt: new Date(),
+		// 	updatedAt: new Date(),
+		// });
 
 		res.json({
 			message: 'Successfully created an issue',
@@ -40,21 +47,28 @@ async function update(req, res) {
 				message: 'issue id is invalid',
 			});
 		const { description, isOpen } = req.body;
-		const { affectedRows } = await commonQuery(
-			`UPDATE database1.Issues SET ? WHERE id = ${id} AND isOpen = 1 AND active = 1;`,
-			{
-				...(description && { description }),
-				...((isOpen===0 || isOpen === 1) && { isOpen }),
-				updatedAt: new Date(),
-			}
-		);
-		if (affectedRows === 0)
-			return res
-				.status(422)
-				.json({
-					success: false,
-					message: 'Issue is closed or id is invalid',
-				});
+		const { data, error } = await supabase
+			.from('Issues')
+			.update({...(description && { description }), ...((isOpen===0 || isOpen === 1) && { isOpen }), updatedAt: new Date(),})
+			.eq('id', id)
+			.eq('isOpen', 1)
+			.eq('active',1);
+		console.log(data,error);
+		// const { affectedRows } = await commonQuery(
+		// 	`UPDATE database1.Issues SET ? WHERE id = ${id} AND isOpen = 1 AND active = 1;`,
+		// 	{
+		// 		...(description && { description }),
+		// 		...((isOpen===0 || isOpen === 1) && { isOpen }),
+		// 		updatedAt: new Date(),
+		// 	}
+		// );
+		// if (affectedRows === 0)
+		// 	return res
+		// 		.status(422)
+		// 		.json({
+		// 			success: false,
+		// 			message: 'Issue is closed or id is invalid',
+		// 		});
 
 		res.json({
 			message: 'Successfully update an issue',
@@ -78,17 +92,43 @@ async function getAll(req, res) {
 				success: false,
 				message: 'Page number is invalid',
 			});
-		const begin = (page-1) * 10;
+		const begin = (page) * 10;
 
-		const GET_ALL_QUERY = `SELECT SQL_CALC_FOUND_ROWS isOpen,id,title,description,createdAt FROM database1.Issues WHERE active = 1 ${
-			isOpen === 'true' && isClosed === 'true'
-				? ''
-				: `AND ${isOpen === 'true' ? 'isOpen=1' : 'isOpen=0'}`
-		} ORDER BY id DESC LIMIT ${begin},10;`;
-		const list = await commonQuery(GET_ALL_QUERY);
-		const [{ totalResults }] = await commonQuery('SELECT FOUND_ROWS() as totalResults;');
-
-		const totalPages = Math.ceil(totalResults/10);
+		// const GET_ALL_QUERY = `SELECT SQL_CALC_FOUND_ROWS isOpen,id,title,description,createdAt FROM database1.Issues WHERE active = 1 ${
+		// 	isOpen === 'true' && isClosed === 'true'
+		// 		? ''
+		// 		: `AND ${isOpen === 'true' ? 'isOpen=1' : 'isOpen=0'}`
+		// } ORDER BY id DESC LIMIT ${begin},10;`;
+		// const list = await commonQuery(GET_ALL_QUERY);
+		// const [{ totalResults }] = await commonQuery('SELECT FOUND_ROWS() as totalResults;');
+		let result;
+		if(isOpen && isClosed){
+			 result = await supabase
+			.from('Issues')
+			.select('id,title,description,isOpen,createdAt')
+			.eq('active',1)
+			.order('id', { ascending: false })
+			.limit(begin,10);
+		}else if(isOpen){
+			result = await supabase
+			.from('Issues')
+			.select('id,title,description,isOpen,createdAt')
+			.eq('active',1)
+			.eq('isOpen',1)
+			.order('id', { ascending: false })
+			.limit(begin,10);
+		}else if(!isOpen){
+			result = await supabase
+			.from('Issues')
+			.select('id,title,description,isOpen,createdAt')
+			.eq('active',1)
+			.eq('isOpen',1)
+			.order('id', { ascending: false })
+			.limit(begin,10);
+		}
+		// console.log(result.data, result.error);
+		const list = result.data;
+		const totalPages = Math.ceil(list.length/10);
 		res.json({
 			data: { list, totalPages, currentPage: page},
 			message: 'Successfully fetched issues',
@@ -113,8 +153,12 @@ async function deleteOne(req, res) {
 				message: 'issue id is invalid',
 			});
 
-		const DELETE_QUERY = `UPDATE database1.Issues SET active = 0 WHERE id = ${id};`;
-		await commonQuery(DELETE_QUERY);
+		// const DELETE_QUERY = `UPDATE database1.Issues SET active = 0 WHERE id = ${id};`;
+		// await commonQuery(DELETE_QUERY);
+		const { data, error } = await supabase
+			.from('Issues')
+			.update({ active: 0 })
+			.eq('id', id);
 		res.json({
 			message: 'Successfully deleted an issue',
 			success: true,
@@ -138,8 +182,13 @@ async function getOne(req, res) {
 				message: 'issue id is invalid',
 			});
 
-		const FETCH_QUERY = `SELECT title,description,createdAt FROM database1.Issues WHERE id = ${id} AND active = 1;`;
-		const data = await commonQuery(FETCH_QUERY);
+		// const FETCH_QUERY = `SELECT title,description,createdAt FROM database1.Issues WHERE id = ${id} AND active = 1;`;
+		// const data = await commonQuery(FETCH_QUERY);
+		const {data,error} = await supabase
+			.from('Issues')
+			.select('title,description,createdAt')
+			.eq('active',1)
+			.eq('id',id);
 
 		res.json({
 			data: data,
