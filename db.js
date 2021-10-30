@@ -2,6 +2,9 @@ const { createClient } = require('@supabase/supabase-js');
 const { postgresDbConfig } = require('./config/default');
 const supabase = createClient(postgresDbConfig.url, postgresDbConfig.publicAnonKey);
 
+
+// Migrated to Supabase db server
+
 // const mysql = require('mysql');
 // const pool = mysql.createPool(mysqlDbConfig);
 // function commonQuery(query,params) {
@@ -24,4 +27,4 @@ const supabase = createClient(postgresDbConfig.url, postgresDbConfig.publicAnonK
 //   })
 // };
 
-// module.exports = { commonQuery };
+module.exports = { supabase };

@@ -85,7 +85,7 @@ async function update(req, res) {
 
 async function getAll(req, res) {
 	try {
-		const { page: unformatted_page, isOpen = 'true', isClosed = 'true' } = req.query;
+		const { page: unformatted_page, isOpen='true', isClosed='true'} = req.query;
 		const page = Number(unformatted_page);
 		if (Number.isNaN(page) || page < 0)
 			return res.status(422).json({
@@ -102,22 +102,24 @@ async function getAll(req, res) {
 		// const list = await commonQuery(GET_ALL_QUERY);
 		// const [{ totalResults }] = await commonQuery('SELECT FOUND_ROWS() as totalResults;');
 		let result;
-		if(isOpen && isClosed){
+		console.log(isOpen,isClosed);
+		console.log(isOpen && isClosed);
+		if(isOpen==='true' && isClosed==='true'){
 			 result = await supabase
 			.from('Issues')
 			.select('id,title,description,isOpen,createdAt')
 			.eq('active',1)
 			.order('id', { ascending: false })
 			.limit(begin,10);
-		}else if(isOpen){
+		}else if(isClosed==='true'){
 			result = await supabase
 			.from('Issues')
 			.select('id,title,description,isOpen,createdAt')
 			.eq('active',1)
-			.eq('isOpen',1)
+			.eq('isOpen',0)
 			.order('id', { ascending: false })
 			.limit(begin,10);
-		}else if(!isOpen){
+		}else if(isOpen==='true'){
 			result = await supabase
 			.from('Issues')
 			.select('id,title,description,isOpen,createdAt')
